@@ -79,7 +79,7 @@
 			{
 				this.x = 0;
 				this.y = 0;
-				this.image = loadImage("game-assets/missile-pack-2.png");
+				this.image = loadImage("game-assets/Powerup.png");
 				this.loadSound = createAudio("game-assets/load-missiles.wav");
 			}
 			
@@ -244,19 +244,16 @@
 			x = 640; // X position
 			y = 420; // Y position
 			engineSound = "";
+			startSound = "";
 			
 			missiles = 0;
 			
 			constructor()
 			{
-				this.image = loadImage("game-assets/spaceship-2.png");
-				//this.engineSound = createAudio("game-assets/engine.wav");
-				
-				this.engineSound
-				$.get('game-assets/pure-data-patches/empire-begins-2.pd', function(patchStr) {
-				  this.engineSound = Pd.loadPatch(patchStr);
-				  //Pd.start();
-				})
+				this.image = loadImage("game-assets/Player.png");
+				this.engineSound = createAudio("game-assets/Background.wav");
+				this.startSound = createAudio("game-assets/starting.wav");
+				this.endSound = createAudio("game-assets/dying.wav");
 			}
 			
 			
@@ -280,15 +277,33 @@
 			
 			startEngineSound()
 			{
-				//this.engineSound.play();
-				//this.engineSound.loop();
-				Pd.start();
+				this.engineSound.play();
+				this.engineSound.loop();
+			}
+			
+			startStartingSound()
+			{
+				this.startSound.play();
+			}
+			
+			startEndSound()
+			{
+			     this.endSound.play();
 			}
 			
 			stopEngineSound()
 			{
-				//this.engineSound.stop();
-				Pd.stop();
+				this.engineSound.stop();
+			}
+			
+			stopStartingSound()
+			{
+				this.startSound.stop();
+			}
+			
+			stopEndSound()
+			{
+				this.endSound.stop();
 			}
 			
 			addMissiles(howMany)
@@ -320,7 +335,7 @@
 				
 				for (let i = 0; i < this.livesLeft; i++)
 				{
-					let live = loadImage("game-assets/spaceship-miniature.png");
+					let live = loadImage("game-assets/Life.png");
 					this.lives[i] = live;
 				}
 			}
@@ -371,11 +386,11 @@
 		*/
 		function preload() 
 		{
-			background = loadImage("game-assets/moon-bg.jpg");		// load the background-image
-			asteroidImage = loadImage("game-assets/asteroid-2.png"); // load once and the pass to Asteroid so that will not load each time an Asteroid is created
+			background = loadImage("game-assets/Cave.jpg");		// load the background-image
+			asteroidImage = loadImage("game-assets/Enemy.png"); // load once and the pass to Asteroid so that will not load each time an Asteroid is created
 			spaceship = new SpaceShip();
 			
-			missileImage = loadImage("game-assets/missile-2.png");
+			missileImage = loadImage("game-assets/Attack.png");
 			missilePack = new MissilePack();
 		}
 		
@@ -403,6 +418,9 @@
 				asteroidSwarm.reset();
 				asteroidSwarm.addNewAsteroids(2);
 				spaceship.startEngineSound();
+				spaceship.startStartingSound();
+				spaceship.stopEndSound();
+				spaceship.stopEndSound();
 				spaceShipLives.reset();
 				startOnce = false;
 			}
@@ -410,6 +428,8 @@
 			if (gameOver) // game over
 			{
 				spaceship.stopEngineSound();
+				spaceship.stopStartingSound();
+				spaceship.startEndSound();
 				spaceship.missiles = 0;
 			}
 			
@@ -490,6 +510,7 @@
 					
 				if (paused)
 					spaceship.stopEngineSound();
+				    spaceship.stopStartingSound();
 					
 				if (!paused)
 					spaceship.startEngineSound();
@@ -498,11 +519,14 @@
 
 		function showMessages()
 		{
+			rect(20, 110, 160, 30);
 			textSize(30);
 			text("Score: " + asteroidSwarm.asteroidsPassed, 30, 135); // Score is shown
 			
-			text("Missiles: " + spaceship.missiles, 1120, 60); // Score is shown
+			rect(1107, 35, 160, 33);
+			text("Magic: " + spaceship.missiles, 1120, 60); // Score is shown
 		
+		    
 			if (!startGame)
 				rect(280, 280, 680, 140); // rectangle (window) to show the message to start game
 				
@@ -514,8 +538,8 @@
 			{
 				text('Press N to start a new game.', 300, 300, 800, 200);
 				textSize(25);
-				text('Use the left and right arrows to avoid the asteroids.', 340, 360, 800, 200);
-				text('Get the missiles and fire by pressing the Space bar!', 340, 390, 800, 200);
+				text('Use the left and right arrows to avoid the enemies.', 340, 360, 800, 200);
+				text('Get thunderstones and fire by pressing Space!', 340, 390, 800, 200);
 			}
 			
 			if (gameOver)
