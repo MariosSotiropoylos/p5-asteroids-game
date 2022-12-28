@@ -73,13 +73,13 @@
 		class MissilePack
 		{
 			//missilePacks = [];
-			
+			loadSound = "";
 			
 			constructor()
 			{
 				this.x = 0;
 				this.y = 0;
-				this.image = loadImage("game-assets/missile-pack-2.png");
+				this.image = loadImage("game-assets/Powerup.png");
 				this.loadSound = createAudio("game-assets/load-missiles.wav");
 			}
 			
@@ -113,7 +113,7 @@
 			checkForCollection(spaceship) // if a missilepack collides with the spaceship is collected
 			{
 				// taken by asteroid.checkForCollision() -- not very precise yet 
-				if (Math.abs(this.x - spaceship.x) < 50 && this.y >= 420 && this.y <= 590)
+				if (Math.abs(this.x - spaceship.x) < 50 && this.y >= 480)
 				{
 					spaceship.addMissiles(3);
 					this.y = 0; // missilepack is taken - new missilePack may be created
@@ -134,7 +134,7 @@
 			
 			constructor()
 			{
-				this.y = 300;
+				this.y = 500;
 				this.image = missileImage;
 			}
 			
@@ -215,7 +215,7 @@
 				// not very precise yet 
 				for (let i = 0; i < this.asteroids.length; i++)
 				{
-					if (Math.abs(this.asteroids[i].x - spaceship.x) < 50 && this.asteroids[i].y >= 420 && this.asteroids[i].y <= 500)
+					if (Math.abs(this.asteroids[i].x - spaceship.x) < 50 && this.asteroids[i].y >= 460)
 					{
 						return this.asteroids[i].explode();
 					}
@@ -242,15 +242,27 @@
 		class SpaceShip
 		{
 			x = 640; // X position
-			y = 420; // Y position
+			y = 490; // Y position
+			engineSound = "";
+			startSound = "";
+			monsterSound = "";
 			
 			missiles = 0;
 			
 			constructor()
 			{
-				this.image = loadImage("game-assets/spaceship-2.png");
-				this.engineSound = createAudio("game-assets/engine.wav");
+				this.image = loadImage("game-assets/Player.png");
+				this.engineSound = createAudio("game-assets/Background.wav");
+				this.startSound = createAudio("game-assets/starting.wav");
+				this.endSound = createAudio("game-assets/dying.wav");
+				
+				this.monsterSound
+				$.get('game-assets/pure-data-patches/monster.pd', function(patchStr) {
+				  this.monsterSound = Pd.loadPatch(patchStr);
+				  //Pd.start();
+				})
 			}
+			
 			
 			display()
 			{
@@ -276,9 +288,42 @@
 				this.engineSound.loop();
 			}
 			
+			startMonsterSound()
+			{
+				//this.monsterSound.play();
+				//this.monsterSound.loop();
+				Pd.start();
+			}
+			
+			startStartingSound()
+			{
+				this.startSound.play();
+			}
+			
+			startEndSound()
+			{
+			     this.endSound.play();
+			}
+			
 			stopEngineSound()
 			{
 				this.engineSound.stop();
+			}
+			
+			stopMonsterSound()
+			{
+				//this.monsterSound.stop();
+				Pd.stop();
+			}
+			
+			stopStartingSound()
+			{
+				this.startSound.stop();
+			}
+			
+			stopEndSound()
+			{
+				this.endSound.stop();
 			}
 			
 			addMissiles(howMany)
@@ -306,11 +351,11 @@
 			constructor()
 			{
 				this.lives = [];
-				this.livesLeft = 3; // initial number of lives
+				this.livesLeft = 5; // initial number of lives
 				
 				for (let i = 0; i < this.livesLeft; i++)
 				{
-					let live = loadImage("game-assets/spaceship-miniature.png");
+					let live = loadImage("game-assets/Life.png");
 					this.lives[i] = live;
 				}
 			}
@@ -335,7 +380,7 @@
 			
 			reset()
 			{
-				this.livesLeft = 3;
+				this.livesLeft = 5;
 			}
 		}
 		
@@ -361,11 +406,11 @@
 		*/
 		function preload() 
 		{
-			background = loadImage("game-assets/moon-bg.jpg");		// load the background-image
-			asteroidImage = loadImage("game-assets/asteroid-2.png"); // load once and the pass to Asteroid so that will not load each time an Asteroid is created
+			background = loadImage("game-assets/Cave.jpg");		// load the background-image
+			asteroidImage = loadImage("game-assets/Enemy.png"); // load once and the pass to Asteroid so that will not load each time an Asteroid is created
 			spaceship = new SpaceShip();
 			
-			missileImage = loadImage("game-assets/missile-2.png");
+			missileImage = loadImage("game-assets/Attack.png");
 			missilePack = new MissilePack();
 		}
 		
@@ -374,6 +419,8 @@
 			spaceShipLives = new SpaceShipLives();
 			createCanvas(1280, 591); // canvas size tied to the background-image
 			asteroidSwarm = new AsteroidSwarm(); // it is going to handle the asteroids
+			
+			setupTouchScreenControls();
 		}
 		
 		function draw() 
@@ -388,11 +435,16 @@
 						
 			showMessages(); // displays messages (if needed) depending on the game state
 			
+			drawTouchScreenControls();
+			
 			if (startGame && !gameOver && startOnce) // begin a new game
 			{
 				asteroidSwarm.reset();
 				asteroidSwarm.addNewAsteroids(2);
 				spaceship.startEngineSound();
+				spaceship.startMonsterSound();
+				spaceship.startStartingSound();
+				spaceship.stopEndSound();
 				spaceShipLives.reset();
 				startOnce = false;
 			}
@@ -400,6 +452,9 @@
 			if (gameOver) // game over
 			{
 				spaceship.stopEngineSound();
+				spaceship.stopMonsterSound();
+				spaceship.stopStartingSound();
+				spaceship.startEndSound();
 				spaceship.missiles = 0;
 			}
 			
@@ -429,6 +484,8 @@
 				{
 					spaceship.move(1);
 				}
+				
+				spaceship.move(getTouchDirectionControl()); // get the touch controls - if any
 				
 				/*
 				if (keyIsDown(32)) // space is pressed
@@ -480,19 +537,25 @@
 					
 				if (paused)
 					spaceship.stopEngineSound();
+				    spaceship.stopStartingSound();
+					spaceship.stopMonsterSound();
 					
 				if (!paused)
 					spaceship.startEngineSound();
+				    spaceship.startMonsterSound();
 			}
 		}
 
 		function showMessages()
 		{
+			rect(20, 110, 160, 30);
 			textSize(30);
 			text("Score: " + asteroidSwarm.asteroidsPassed, 30, 135); // Score is shown
 			
-			text("Missiles: " + spaceship.missiles, 1120, 60); // Score is shown
+			rect(1107, 35, 160, 33);
+			text("Magic: " + spaceship.missiles, 1120, 60); // Score is shown
 		
+		    
 			if (!startGame)
 				rect(280, 280, 680, 140); // rectangle (window) to show the message to start game
 				
@@ -504,8 +567,8 @@
 			{
 				text('Press N to start a new game.', 300, 300, 800, 200);
 				textSize(25);
-				text('Use the left and right arrows to avoid the asteroids.', 340, 360, 800, 200);
-				text('Get the missiles and fire by pressing the Space bar!', 340, 390, 800, 200);
+				text('Use the left and right arrows to avoid the enemies.', 340, 360, 800, 200);
+				text('Get thunderstones and fire by pressing the F-button!', 340, 390, 800, 200);
 			}
 			
 			if (gameOver)
